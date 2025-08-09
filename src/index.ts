@@ -1,5 +1,4 @@
-import { readConfig } from "./config"
-import { type CommandsRegistry, registerCommand, runCommand, handlerLogin } from "./commands";
+import { CommandsRegistry, registerCommand, runCommand, handlerLogin } from "./commands";
 
 function main() {
     if (process.argv.length <= 2) {
