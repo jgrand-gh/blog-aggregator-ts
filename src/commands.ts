@@ -1,5 +1,5 @@
 import { setUser } from "./config";
-import { createUser, getUserByName } from "./lib/db/queries/users";
+import { createUser, deleteUsers, getUserByName } from "./lib/db/queries/users";
 
 type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 
@@ -47,4 +47,14 @@ export async function handlerRegister(cmdName: string, ...args: string[]) {
     setUser(userName);
     console.log(`User "${userName}" was created.`);
     console.log(`"${user.name}" (${user.id}) was created at ${user.createdAt} and last updated at ${user.updatedAt}`);
+}
+
+export async function handlerReset(cmdName: string) {
+    try {
+        await deleteUsers();
+        console.log(`"Users" table was reset successfully`);
+    } catch {
+        console.log("Failed to reset the users table");
+        process.exit(1);
+    }
 }
