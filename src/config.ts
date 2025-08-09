@@ -29,7 +29,7 @@ function writeConfig(cfg: Config): void {
         current_user_name: cfg.currentUserName,
     };
     const data = JSON.stringify(rawConfig, null, 2);
-    fs.writeFileSync(getConfigFilePath(), data);
+    fs.writeFileSync(getConfigFilePath(), data, "utf-8");
 }
 
 function validateConfig(rawConfig: any): Config {
