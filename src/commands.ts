@@ -1,5 +1,5 @@
-import { setUser } from "./config";
-import { createUser, deleteUsers, getUserByName } from "./lib/db/queries/users";
+import { readConfig, setUser } from "./config";
+import { createUser, deleteUsers, getUser, getUsers } from "./lib/db/queries/users";
 
 type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
 
@@ -23,7 +23,7 @@ export async function handlerLogin(cmdName: string, ...args: string[]) {
     }
 
     const userName = args[0];
-    const userInDb = await getUserByName(userName);
+    const userInDb = await getUser(userName);
     if (!userInDb) {
         throw new Error(`User "${userName}" doesn't exist in database`);
     }
@@ -38,7 +38,7 @@ export async function handlerRegister(cmdName: string, ...args: string[]) {
     }
 
     const userName = args[0];
-    const userInDb = await getUserByName(userName);
+    const userInDb = await getUser(userName);
     if (userInDb) {
         throw new Error(`User "${userName}" already exists in database`);
     }
@@ -56,5 +56,14 @@ export async function handlerReset(cmdName: string) {
     } catch {
         console.log("Failed to reset the users table");
         process.exit(1);
+    }
+}
+
+export async function handlerUsers(cmdName: string) {
+    const users = await getUsers();
+    const loggedInUser = readConfig().currentUserName;
+
+    for (const user of users) {
+        user.name === loggedInUser ? console.log(`* ${user.name} (current)`) : console.log(`* ${user.name}`);
     }
 }
