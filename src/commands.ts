@@ -1,6 +1,6 @@
 import { readConfig, setUser } from "./config";
-import { createUser, deleteUsers, getUser, getUsers } from "./lib/db/queries/users";
-import { fetchFeed } from "./lib/rss_manager";
+import { createFeed, createUser, deleteUsers, getUser, getUsers } from "./lib/db/queries/queries";
+import { fetchFeed, printFeed } from "./lib/rss_manager";
 
 export async function handlerLogin(command: string, ...args: string[]) {
     if (args.length === 0) {
@@ -62,4 +62,28 @@ export async function handlerAgg(command: string, ...args: string[]) {
     const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
 
     console.dir(feed, { depth: null });
+}
+
+export async function handlerAddFeed(command: string, ...args: string[]) {
+    if (args.length <= 1) {
+        throw new Error(`usage: ${command} <feed_name> <url>`);
+    }
+
+    const currentUser = readConfig().currentUserName;
+    const dbUser = await getUser(currentUser);
+
+    if (!dbUser) {
+        throw new Error(`User "${currentUser}" not found`);
+    }
+
+    const feedName = args[0];
+    const feedUrl = args[1];
+
+    const feed = await createFeed(feedName, feedUrl, dbUser);
+    if (!feed) {
+        throw new Error("Feed creation failed");
+    }
+
+    console.log("Feed was created:");
+    printFeed(feed, dbUser);
 }

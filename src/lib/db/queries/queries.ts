@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { db } from "..";
-import { users } from "../schema";
+import { User, users, feeds } from "../schema";
 
 export async function createUser(name: string) {
     const [result] = await db
@@ -29,4 +29,12 @@ export async function getUsers() {
 export async function deleteUsers() {
     await db
         .delete(users);
+}
+
+export async function createFeed(feedName: string, feedUrl: string, user: User) {
+    const [result] = await db
+        .insert(feeds)
+        .values({ name: feedName, url: feedUrl, userId: user.id })
+        .returning();
+    return result;
 }

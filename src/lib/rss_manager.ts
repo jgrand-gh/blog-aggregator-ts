@@ -1,4 +1,5 @@
 import { XMLParser } from "fast-xml-parser";
+import { Feed, User } from "./db/schema";
 
 export type RSSFeed = {
     channel: {
@@ -65,4 +66,13 @@ export async function fetchFeed(feedUrl: string) {
     }
 
     return rssFeed;
+}
+
+export async function printFeed(feed: Feed, user: User) {
+    console.log(` id: ${feed.id}`);
+    console.log(` createdAt: ${feed.createdAt}`);
+    console.log(` updatedAt: ${feed.updatedAt}`);
+    console.log(` name: ${feed.name}`);
+    console.log(` url: ${feed.url}`);
+    console.log(` name: ${user.name}`);
 }
