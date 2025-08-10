@@ -1,25 +1,10 @@
 import { readConfig, setUser } from "./config";
 import { createUser, deleteUsers, getUser, getUsers } from "./lib/db/queries/users";
+import { fetchFeed } from "./lib/rss_manager";
 
-type CommandHandler = (cmdName: string, ...args: string[]) => Promise<void>;
-
-export type CommandsRegistry = Record<string, CommandHandler>;
-
-export function registerCommand(registry: CommandsRegistry, cmdName: string, handler: CommandHandler) {
-    registry[cmdName] = handler;
-}
-
-export async function runCommand(registry: CommandsRegistry, cmdName: string, ...args: string[]): Promise<void> {
-    if (!registry[cmdName]) {
-        throw new Error(`The provided command "${cmdName}" does not exist.`);
-    }
-
-    return registry[cmdName](cmdName, ...args);
-}
-
-export async function handlerLogin(cmdName: string, ...args: string[]) {
+export async function handlerLogin(command: string, ...args: string[]) {
     if (args.length === 0) {
-        throw new Error("Please provide a username to login");
+        throw new Error(`usage: ${command} <user_name>`);
     }
 
     const userName = args[0];
@@ -32,9 +17,9 @@ export async function handlerLogin(cmdName: string, ...args: string[]) {
     console.log(`User "${userInDb.name}" has been set.`);
 }
 
-export async function handlerRegister(cmdName: string, ...args: string[]) {
+export async function handlerRegister(command: string, ...args: string[]) {
     if (args.length === 0) {
-        throw new Error("Please provide a username to register");
+        throw new Error(`usage: ${command} <user_name>`);
     }
 
     const userName = args[0];
@@ -49,7 +34,7 @@ export async function handlerRegister(cmdName: string, ...args: string[]) {
     console.log(`"${user.name}" (${user.id}) was created at ${user.createdAt} and last updated at ${user.updatedAt}`);
 }
 
-export async function handlerReset(cmdName: string) {
+export async function handlerReset(_: string) {
     try {
         await deleteUsers();
         console.log(`"Users" table was reset successfully`);
@@ -59,11 +44,22 @@ export async function handlerReset(cmdName: string) {
     }
 }
 
-export async function handlerUsers(cmdName: string) {
+export async function handlerUsers(_: string) {
     const users = await getUsers();
     const loggedInUser = readConfig().currentUserName;
 
     for (const user of users) {
         user.name === loggedInUser ? console.log(`* ${user.name} (current)`) : console.log(`* ${user.name}`);
     }
+}
+
+export async function handlerAgg(command: string, ...args: string[]) {
+    //if (args.length === 0) {
+    //    throw new Error(`usage: ${command} <url>`);
+    //}
+
+    //const url = args[0];
+    const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
+
+    console.dir(feed, { depth: null });
 }
