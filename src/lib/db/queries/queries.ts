@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "..";
 import { User, users, feeds } from "../schema";
 
@@ -10,12 +10,20 @@ export async function createUser(name: string) {
     return result;
 }
 
-export async function getUser(name: string) {
+export async function getUserByName(name: string) {
     const [result] = await db
         .select()
         .from(users)
         .where(sql`lower(${users.name}) = lower(${sql.placeholder("name")})`)
         .execute({ name });
+    return result;
+}
+
+export async function getUserById(id: string) {
+    const [result] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id));
     return result;
 }
 
@@ -36,5 +44,12 @@ export async function createFeed(feedName: string, feedUrl: string, user: User) 
         .insert(feeds)
         .values({ name: feedName, url: feedUrl, userId: user.id })
         .returning();
+    return result;
+}
+
+export async function getFeeds() {
+    const result = await db
+        .select()
+        .from(feeds);
     return result;
 }

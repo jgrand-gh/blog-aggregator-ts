@@ -1,5 +1,5 @@
 import { readConfig, setUser } from "./config";
-import { createFeed, createUser, deleteUsers, getUser, getUsers } from "./lib/db/queries/queries";
+import { createFeed, createUser, deleteUsers, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
 import { fetchFeed, printFeed } from "./lib/rss_manager";
 
 export async function handlerLogin(command: string, ...args: string[]) {
@@ -8,7 +8,7 @@ export async function handlerLogin(command: string, ...args: string[]) {
     }
 
     const userName = args[0];
-    const userInDb = await getUser(userName);
+    const userInDb = await getUserByName(userName);
     if (!userInDb) {
         throw new Error(`User "${userName}" doesn't exist in database`);
     }
@@ -23,7 +23,7 @@ export async function handlerRegister(command: string, ...args: string[]) {
     }
 
     const userName = args[0];
-    const userInDb = await getUser(userName);
+    const userInDb = await getUserByName(userName);
     if (userInDb) {
         throw new Error(`User "${userName}" already exists in database`);
     }
@@ -70,7 +70,7 @@ export async function handlerAddFeed(command: string, ...args: string[]) {
     }
 
     const currentUser = readConfig().currentUserName;
-    const dbUser = await getUser(currentUser);
+    const dbUser = await getUserByName(currentUser);
 
     if (!dbUser) {
         throw new Error(`User "${currentUser}" not found`);
@@ -86,4 +86,21 @@ export async function handlerAddFeed(command: string, ...args: string[]) {
 
     console.log("Feed was created:");
     printFeed(feed, dbUser);
+}
+
+export async function handlerFeeds(_: string) {
+    const feeds = await getFeeds();
+    if (!feeds) {
+        throw new Error("Failed to get feeds from database, or no feeds found");
+    }
+
+    for (const feed of feeds) {
+        const user = await getUserById(feed.userId);
+        if (!user) {
+            throw new Error(`failed to get user from database for feed ${feed.id}`);
+        }
+
+        printFeed(feed, user);
+        console.log();
+    }
 }

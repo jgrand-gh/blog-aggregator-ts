@@ -1,5 +1,6 @@
 import { XMLParser } from "fast-xml-parser";
 import { Feed, User } from "./db/schema";
+import { getFeeds } from "./db/queries/queries";
 
 export type RSSFeed = {
     channel: {
