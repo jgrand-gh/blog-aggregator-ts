@@ -1,5 +1,5 @@
 import { CommandsRegistry, registerCommand, runCommand } from "./command_registry";
-import { handlerAddFeed, handlerAgg, handlerFeeds, handlerLogin, handlerRegister, handlerReset, handlerUsers } from "./commands";
+import { handlerAddFeed, handlerAgg, handlerFeeds, handlerFollow, handlerFollowing, handlerLogin, handlerRegister, handlerReset, handlerUsers } from "./commands";
 
 async function main() {
     if (process.argv.length <= 2) {
@@ -17,6 +17,8 @@ async function main() {
     registerCommand(cmdsRegistry, "agg", handlerAgg);
     registerCommand(cmdsRegistry, "addfeed", handlerAddFeed);
     registerCommand(cmdsRegistry, "feeds", handlerFeeds);
+    registerCommand(cmdsRegistry, "follow", handlerFollow);
+    registerCommand(cmdsRegistry, "following", handlerFollowing);
 
     try {
         await runCommand(cmdsRegistry, command, ...args);

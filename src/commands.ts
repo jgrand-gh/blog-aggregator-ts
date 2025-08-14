@@ -1,5 +1,5 @@
 import { readConfig, setUser } from "./config";
-import { createFeed, createUser, deleteUsers, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
+import { createFeed, createFeedFollow, createUser, deleteFeeds, deleteUsers, getFeedByUrl, getFeedFollowsForUser, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
 import { fetchFeed, printFeed } from "./lib/rss_manager";
 
 export async function handlerLogin(command: string, ...args: string[]) {
@@ -37,9 +37,10 @@ export async function handlerRegister(command: string, ...args: string[]) {
 export async function handlerReset(_: string) {
     try {
         await deleteUsers();
-        console.log(`"Users" table was reset successfully`);
+        await deleteFeeds();
+        console.log(`"Users" and "Feeds" tables were reset successfully`);
     } catch {
-        console.log("Failed to reset the users table");
+        console.log("Failed to reset the Users and Feeds tables");
         process.exit(1);
     }
 }
@@ -71,7 +72,6 @@ export async function handlerAddFeed(command: string, ...args: string[]) {
 
     const currentUser = readConfig().currentUserName;
     const dbUser = await getUserByName(currentUser);
-
     if (!dbUser) {
         throw new Error(`User "${currentUser}" not found`);
     }
@@ -80,9 +80,7 @@ export async function handlerAddFeed(command: string, ...args: string[]) {
     const feedUrl = args[1];
 
     const feed = await createFeed(feedName, feedUrl, dbUser);
-    if (!feed) {
-        throw new Error("Feed creation failed");
-    }
+    await createFeedFollow(dbUser.id, feed.id);
 
     console.log("Feed was created:");
     printFeed(feed, dbUser);
@@ -102,5 +100,48 @@ export async function handlerFeeds(_: string) {
 
         printFeed(feed, user);
         console.log();
+    }
+}
+
+export async function handlerFollow(command: string, ...args: string[]) {
+    if (args.length === 0) {
+        throw new Error(`usage: ${command} <url>`);
+    }
+
+    const currentUser = readConfig().currentUserName;
+    const feedUrl = args[0];
+
+    const user = await getUserByName(currentUser);
+    if (!user) {
+        throw new Error(`User "${currentUser}" could not be found.`)
+    }
+
+    const feed = await getFeedByUrl(feedUrl);
+    if (!feed) {
+        throw new Error(`No feeds with URL "${feedUrl}" could be found.`)
+    }
+
+    const result = await createFeedFollow(user.id, feed.id);
+    console.log(`Feed: "${result.feedName}" successfully followed by User: "${result.userName}"`);
+}
+
+export async function handlerFollowing(_: string) {
+    const currentUser = readConfig().currentUserName;
+
+    const user = await getUserByName(currentUser);
+    if (!user) {
+        throw new Error(`User "${currentUser}" could not be found.`)
+    }
+
+    const feedFollows = await getFeedFollowsForUser(user.id);
+    if (feedFollows.length === 0) {
+        console.log(`No feeds for User "${currentUser}" could be found.`);
+        return;
+    }
+
+    console.log();
+    console.log(`Feeds following by "${currentUser}":`);
+    for (const feedFollow of feedFollows) {
+        console.log(` - ${feedFollow.feedName} (${feedFollow.feedUrl})`);
     }
 }
