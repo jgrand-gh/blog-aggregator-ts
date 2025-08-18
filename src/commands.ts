@@ -1,5 +1,6 @@
+import { error } from "console";
 import { readConfig, setUser } from "./config";
-import { createFeed, createFeedFollow, createUser, deleteFeeds, deleteUsers, getFeedByUrl, getFeedFollowsForUser, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
+import { createFeed, createFeedFollow, createUser, deleteFeedFollow, deleteFeeds, deleteUsers, getFeedByUrl, getFeedFollowsForUser, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
 import { User } from "./lib/db/schema";
 import { fetchFeed, printFeed } from "./lib/rss_manager";
 
@@ -125,4 +126,23 @@ export async function handlerFollowing(command: string, user: User, ...args: str
     for (const feedFollow of feedFollows) {
         console.log(` - ${feedFollow.feedName} (${feedFollow.feedUrl})`);
     }
+}
+
+export async function handlerUnfollow(command: string, user: User, ...args: string[]) {
+    if (args.length === 0) {
+        throw new Error(`usage: ${command} <url>`);
+    }
+
+    const feedUrl = args[0];
+    const feed = await getFeedByUrl(feedUrl);
+    if (!feed) {
+        throw new Error(`Feed for "${feedUrl}" does not exist`);
+    }
+
+    const result = await deleteFeedFollow(user.id, feed.id);
+    if (!result) {
+        throw new Error(`Feed ${feedUrl} could not be unfollowed`);
+    }
+
+    console.log(`User "${user.name}" is no longer following feed: "${feed.name}"`);
 }
