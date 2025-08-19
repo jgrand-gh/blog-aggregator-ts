@@ -2,7 +2,8 @@ import { error } from "console";
 import { readConfig, setUser } from "./config";
 import { createFeed, createFeedFollow, createUser, deleteFeedFollow, deleteFeeds, deleteUsers, getFeedByUrl, getFeedFollowsForUser, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
 import { User } from "./lib/db/schema";
-import { fetchFeed, printFeed } from "./lib/rss_manager";
+import { printFeed, scrapeFeeds } from "./lib/rss_manager";
+import { formatTime, handleError, parseDuration } from "./helpers";
 
 export async function handlerLogin(command: string, ...args: string[]) {
     if (args.length === 0) {
@@ -57,14 +58,25 @@ export async function handlerUsers(command: string) {
 }
 
 export async function handlerAgg(command: string, ...args: string[]) {
-    //if (args.length === 0) {
-    //    throw new Error(`usage: ${command} <url>`);
-    //}
+    if (args.length === 0) {
+        throw new Error(`usage: ${command} <time_between_reqs>`);
+    }
 
-    //const url = args[0];
-    const feed = await fetchFeed("https://www.wagslane.dev/index.xml");
+    const timeBetweenRequests = parseDuration(args[0]);
+    console.log(`Collecting feeds every ${formatTime(timeBetweenRequests)}`);
 
-    console.dir(feed, { depth: null });
+    scrapeFeeds().catch(handleError);
+    const interval = setInterval(() => {
+        scrapeFeeds().catch(handleError);
+    }, timeBetweenRequests);
+
+    await new Promise<void>((resolve) => {
+        process.on("SIGINT", () => {
+            console.log("Shutting down feed aggregator...");
+            clearInterval(interval);
+            resolve();
+        });
+    });
 }
 
 export async function handlerAddFeed(command: string, user: User, ...args: string[]) {

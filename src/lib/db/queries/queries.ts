@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { db } from "..";
 import { User, users, feeds, feedFollows, Feed } from "../schema";
 
@@ -47,6 +47,14 @@ export async function createFeed(feedName: string, feedUrl: string, user: User) 
     return result;
 }
 
+export async function getFeedByUrl(feedUrl: string) {
+    const [result] = await db
+        .select()
+        .from(feeds)
+        .where(eq(feeds.url, feedUrl));
+    return result;
+}
+
 export async function getFeeds() {
     const result = await db
         .select()
@@ -54,17 +62,27 @@ export async function getFeeds() {
     return result;
 }
 
-export async function deleteFeeds() {
-    await db
-        .delete(feeds);
+export async function markFeedFetched(feedId: string) {
+    const [result] = await db
+        .update(feeds)
+        .set({ lastFetchedAt: new Date() })
+        .where(eq(feeds.id, feedId))
+        .returning();
+    return result;
 }
 
-export async function getFeedByUrl(feedUrl: string) {
+export async function getNextFeedToFetch() {
     const [result] = await db
         .select()
         .from(feeds)
-        .where(eq(feeds.url, feedUrl));
+        .orderBy(sql`${feeds.lastFetchedAt} ASC NULLS FIRST`)
+        .limit(1);
     return result;
+}
+
+export async function deleteFeeds() {
+    await db
+        .delete(feeds);
 }
 
 export async function createFeedFollow(userId: string, feedId: string) {
