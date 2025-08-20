@@ -1,9 +1,8 @@
-import { error } from "console";
 import { readConfig, setUser } from "./config";
-import { createFeed, createFeedFollow, createUser, deleteFeedFollow, deleteFeeds, deleteUsers, getFeedByUrl, getFeedFollowsForUser, getFeeds, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
+import { createFeed, createFeedFollow, createUser, deleteFeedFollow, deleteFeeds, deleteUsers, getFeedByUrl, getFeedFollowsForUser, getFeeds, getPostsForUser, getUserById, getUserByName, getUsers } from "./lib/db/queries/queries";
 import { User } from "./lib/db/schema";
-import { printFeed, scrapeFeeds } from "./lib/rss_manager";
-import { formatTime, handleError, parseDuration } from "./helpers";
+import { handleError, printFeed, scrapeFeeds } from "./lib/rss_manager";
+import { formatTime, parseDuration } from "./helpers";
 
 export async function handlerLogin(command: string, ...args: string[]) {
     if (args.length === 0) {
@@ -87,7 +86,7 @@ export async function handlerAddFeed(command: string, user: User, ...args: strin
     const feedName = args[0];
     const feedUrl = args[1];
 
-    const feed = await createFeed(feedName, feedUrl, user);
+    const feed = await createFeed(feedName, feedUrl, user.id);
     await createFeedFollow(user.id, feed.id);
 
     console.log("Feed was created:");
@@ -157,4 +156,29 @@ export async function handlerUnfollow(command: string, user: User, ...args: stri
     }
 
     console.log(`User "${user.name}" is no longer following feed: "${feed.name}"`);
+}
+
+export async function handlerBrowse(command: string, user: User, ...args: string[]) {
+    let postLimit = 2;
+    if (args.length >= 1) {
+        try {
+            postLimit = parseInt(args[0]);
+        } catch {
+            throw new Error(`usage: ${command} [post_limit]`);
+        }
+    }
+
+    const posts = await getPostsForUser(user.id, postLimit);
+    if (!posts || posts.length === 0) {
+        throw new Error(`User "${user.name}" has no posts to view`);
+    }
+
+    console.log("Latest posts:");
+    for (const post of posts) {
+        console.log("  Post:");
+        console.log(`   - Title: ${post.title}`);
+        console.log(`   - Link: ${post.url}`);
+        console.log(`   - Published At: ${post.publishedAt}`);
+        console.log(`   - Description: ${post.description}`);
+    }
 }

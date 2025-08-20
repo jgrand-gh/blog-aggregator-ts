@@ -1,6 +1,6 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "..";
-import { User, users, feeds, feedFollows, Feed } from "../schema";
+import { User, users, feeds, feedFollows, Feed, posts } from "../schema";
 
 export async function createUser(name: string) {
     const [result] = await db
@@ -39,10 +39,10 @@ export async function deleteUsers() {
         .delete(users);
 }
 
-export async function createFeed(feedName: string, feedUrl: string, user: User) {
+export async function createFeed(feedName: string, feedUrl: string, userId: string) {
     const [result] = await db
         .insert(feeds)
-        .values({ name: feedName, url: feedUrl, userId: user.id })
+        .values({ name: feedName, url: feedUrl, userId: userId })
         .returning();
     return result;
 }
@@ -133,5 +133,30 @@ export async function deleteFeedFollow(userId: string, feedId: string) {
         )
         .returning()
 
+    return result;
+}
+
+export async function createPost(postTitle: string, postURL: string, publishedAt: Date, feedId: string, description?: string) {
+    const [result] = await db
+        .insert(posts)
+        .values({ title: postTitle, url: postURL, description: description, publishedAt: publishedAt, feedId: feedId })
+        .returning();
+    return result;
+}
+
+export async function getPostsForUser(userId: string, limit: number) {
+    const result = await db
+        .select({
+            id: posts.id,
+            title: posts.title,
+            url: posts.url,
+            description: posts.description,
+            publishedAt: posts.publishedAt,
+        })
+        .from(posts)
+        .innerJoin(feedFollows, eq(feedFollows.feedId, posts.feedId))
+        .where(eq(feedFollows.userId, userId))
+        .orderBy(desc(posts.publishedAt))
+        .limit(limit);
     return result;
 }

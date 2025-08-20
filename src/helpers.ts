@@ -1,3 +1,5 @@
+import { isDate } from "util/types";
+
 export function parseDuration(durationStr: string): number {
     const regex = /^(\d+)(ms|s|m|h)$/;
 
@@ -49,6 +51,11 @@ export function formatTime(durationInMs: number) {
     return timeString;
 }
 
-export function handleError(err: unknown) {
-    console.error(`Error scraping feeds: ${err instanceof Error ? err.message : err}`);
+export function safeDateParsing(dateString: string): Date {
+    const parsed = new Date(dateString);
+    if (isDate(parsed) && !isNaN(parsed.getTime())) {
+        return parsed;
+    } else {
+        throw new Error(`${dateString} could not be parsed correctly`);
+    }
 }

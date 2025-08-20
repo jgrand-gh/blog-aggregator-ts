@@ -1,6 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { Feed, User } from "./db/schema";
-import { getNextFeedToFetch, markFeedFetched } from "./db/queries/queries";
+import { createPost, getNextFeedToFetch, markFeedFetched } from "./db/queries/queries";
+import { safeDateParsing } from "src/helpers";
 
 export type RSSFeed = {
     channel: {
@@ -50,7 +51,7 @@ export async function fetchFeed(feedUrl: string) {
     }
 
     const chanItem = jsObj.rss.channel.item || [];
-    const items = Array.isArray(chanItem) ? chanItem: [chanItem];
+    const items = Array.isArray(chanItem) ? chanItem : [chanItem];
 
     for (const item of items) {
         if (!item.title || !item.link || !item.description || !item.pubDate) {
@@ -89,6 +90,25 @@ export async function scrapeFeeds() {
 
     const rssFeed = await fetchFeed(nextFeed.url);
     for (const item of rssFeed.channel.item) {
-        console.log(` Title: "${item.title}"`);
+        if (!item.title || !item.link) {
+            console.error(`${item} is missing a title or link`);
+            continue;
+        }
+
+        try {
+            const post = await createPost(item.title, item.link, safeDateParsing(item.pubDate), nextFeed.id, item.description);
+            console.log(`added ${post.title} to the database`);
+        } catch (e: any) {
+            if (e.cause.code === '23505' && e.cause.constraint_name === 'posts_url_unique') {
+                console.error(`Post ${item.link} already exists in database`);
+            } else {
+                console.error(`${(e as Error).message}`);
+            }
+            continue;
+        }
     }
+}
+
+export function handleError(err: unknown) {
+    console.error(`Error scraping feeds: ${err instanceof Error ? err.message : err}`);
 }
